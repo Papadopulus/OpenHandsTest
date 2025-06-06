@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PACMAN Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #00f;
+            background-color: #000;
+        }
+        
+        #gameInfo {
+            margin-top: 10px;
+            display: flex;
+            gap: 20px;
+            font-size: 18px;
+        }
+        
+        #controls {
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border: 2px solid #ff0;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 24px;
+        }
+        
+        button {
+            background-color: #00f;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background-color: #44f;
+        }
+    </style>
+</head>
+<body>
+    <h1>PACMAN Game</h1>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="gameInfo">
+        <div>Score: <span id="score">0</span></div>
+        <div>Lives: <span id="lives">3</span></div>
+        <div>Level: <span id="level">1</span></div>
+    </div>
+    <div id="controls">
+        <p>Use arrow keys to move PACMAN</p>
+        <button onclick="game.restart()">Restart Game</button>
+        <button onclick="game.togglePause()">Pause/Resume</button>
+    </div>
+    
+    <script src="pacman.js"></script>
+</body>
+</html>
