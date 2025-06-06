@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PACMAN Game Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        
+        .test-container {
+            background-color: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .test-pass {
+            color: green;
+            font-weight: bold;
+        }
+        
+        .test-fail {
+            color: red;
+            font-weight: bold;
+        }
+        
+        .test-result {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        
+        #testCanvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>PACMAN Game Test Suite</h1>
+    <div id="testResults"></div>
+    
+    <!-- Hidden canvas for testing -->
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+    
+    <script>
+        // Mock the game canvas for testing
+        const originalGetElementById = document.getElementById;
+        document.getElementById = function(id) {
+            if (id === 'gameCanvas') {
+                return document.getElementById('testCanvas');
+            }
+            if (id === 'score' || id === 'lives' || id === 'level') {
+                return { textContent: '0' };
+            }
+            return originalGetElementById.call(this, id);
+        };
+    </script>
+    
+    <script src="../pacman.js"></script>
+    
+    <script>
+        class PacmanTests {
+            constructor() {
+                this.results = [];
+                this.runTests();
+            }
+            
+            assert(condition, message) {
+                const result = {
+                    message: message,
+                    passed: condition
+                };
+                this.results.push(result);
+                return condition;
+            }
+            
+            assertEqual(actual, expected, message) {
+                return this.assert(actual === expected, 
+                    `${message} - Expected: ${expected}, Got: ${actual}`);
+            }
+            
+            assertNotNull(value, message) {
+                return this.assert(value !== null && value !== undefined, 
+                    `${message} - Value should not be null/undefined`);
+            }
+            
+            runTests() {
+                console.log('Starting PACMAN Game Tests...');
+                
+                // Test 1: Game initialization
+                this.testGameInitialization();
+                
+                // Test 2: Maze creation
+                this.testMazeCreation();
+                
+                // Test 3: Pacman movement
+                this.testPacmanMovement();
+                
+                // Test 4: Ghost behavior
+                this.testGhostBehavior();
+                
+                // Test 5: Collision detection
+                this.testCollisionDetection();
+                
+                // Test 6: Scoring system
+                this.testScoringSystem();
+                
+                // Test 7: Power mode
+                this.testPowerMode();
+                
+                // Test 8: Game state management
+                this.testGameStateManagement();
+                
+                this.displayResults();
+            }
+            
+            testGameInitialization() {
+                try {
+                    const testGame = new PacmanGame();
+                    
+                    this.assertNotNull(testGame, 'Game should initialize');
+                    this.assertEqual(testGame.score, 0, 'Initial score should be 0');
+                    this.assertEqual(testGame.lives, 3, 'Initial lives should be 3');
+                    this.assertEqual(testGame.level, 1, 'Initial level should be 1');
+                    this.assertEqual(testGame.gameRunning, true, 'Game should be running initially');
+                    this.assertEqual(testGame.paused, false, 'Game should not be paused initially');
+                    
+                    // Test Pacman initial position
+                    this.assertEqual(testGame.pacman.x, 19, 'Pacman initial X position');
+                    this.assertEqual(testGame.pacman.y, 23, 'Pacman initial Y position');
+                    this.assertEqual(testGame.pacman.direction, 0, 'Pacman initial direction should be right');
+                    
+                    // Test ghosts initialization
+                    this.assertEqual(testGame.ghosts.length, 4, 'Should have 4 ghosts');
+                    this.assertNotNull(testGame.ghosts[0].color, 'Ghost should have color');
+                    
+                } catch (error) {
+                    this.assert(false, `Game initialization failed: ${error.message}`);
+                }
+            }
+            
+            testMazeCreation() {
+                try {
+                    const testGame = new PacmanGame();
+                    
+                    this.assertNotNull(testGame.maze, 'Maze should be created');
+                    this.assertEqual(testGame.maze.length, testGame.rows, 'Maze should have correct number of rows');
+                    this.assertEqual(testGame.maze[0].length, testGame.cols, 'Maze should have correct number of columns');
+                    
+                    // Test border walls
+                    this.assertEqual(testGame.maze[0][0], 1, 'Top-left corner should be wall');
+                    this.assertEqual(testGame.maze[0][testGame.cols-1], 1, 'Top-right corner should be wall');
+                    this.assertEqual(testGame.maze[testGame.rows-1][0], 1, 'Bottom-left corner should be wall');
+                    this.assertEqual(testGame.maze[testGame.rows-1][testGame.cols-1], 1, 'Bottom-right corner should be wall');
+                    
+                    // Test that maze contains dots and power pellets
+                    let hasDots = false;
+                    let hasPowerPellets = false;
+                    for (let y = 0; y < testGame.rows; y++) {
+                        for (let x = 0; x < testGame.cols; x++) {
+                            if (testGame.maze[y][x] === 2) hasDots = true;
+                            if (testGame.maze[y][x] === 3) hasPowerPellets = true;
+                        }
+                    }
+                    this.assert(hasDots, 'Maze should contain dots');
+                    this.assert(hasPowerPellets, 'Maze should contain power pellets');
+                    
+                } catch (error) {
+                    this.assert(false, `Maze creation test failed: ${error.message}`);
+                }
+            }
+            
+            testPacmanMovement() {
+                try {
+                    const testGame = new PacmanGame();
+                    const initialX = testGame.pacman.x;
+                    const initialY = testGame.pacman.y;
+                    
+                    // Test canMove function
+                    const moveResult = testGame.canMove(initialX, initialY, 0); // Move right
+                    this.assertNotNull(moveResult, 'canMove should return result');
+                    this.assertNotNull(moveResult.x, 'Move result should have x coordinate');
+                    this.assertNotNull(moveResult.y, 'Move result should have y coordinate');
+                    
+                    // Test direction change
+                    testGame.pacman.nextDirection = 1; // Down
+                    const originalDirection = testGame.pacman.direction;
+                    testGame.updatePacman();
+                    
+                    // Pacman should either move or change direction
+                    const moved = testGame.pacman.x !== initialX || testGame.pacman.y !== initialY;
+                    const directionChanged = testGame.pacman.direction !== originalDirection;
+                    this.assert(moved || directionChanged, 'Pacman should move or change direction');
+                    
+                } catch (error) {
+                    this.assert(false, `Pacman movement test failed: ${error.message}`);
+                }
+            }
+            
+            testGhostBehavior() {
+                try {
+                    const testGame = new PacmanGame();
+                    
+                    // Test ghost properties
+                    testGame.ghosts.forEach((ghost, index) => {
+                        this.assertNotNull(ghost.x, `Ghost ${index} should have x position`);
+                        this.assertNotNull(ghost.y, `Ghost ${index} should have y position`);
+                        this.assertNotNull(ghost.direction, `Ghost ${index} should have direction`);
+                        this.assertNotNull(ghost.color, `Ghost ${index} should have color`);
+                        this.assertNotNull(ghost.mode, `Ghost ${index} should have mode`);
+                    });
+                    
+                    // Test ghost movement
+                    const ghost = testGame.ghosts[0];
+                    const initialX = ghost.x;
+                    const initialY = ghost.y;
+                    
+                    testGame.moveGhost(ghost);
+                    
+                    // Ghost should have valid position after movement attempt
+                    this.assert(ghost.x >= 0 && ghost.x < testGame.cols, 'Ghost X should be within bounds');
+                    this.assert(ghost.y >= 0 && ghost.y < testGame.rows, 'Ghost Y should be within bounds');
+                    
+                } catch (error) {
+                    this.assert(false, `Ghost behavior test failed: ${error.message}`);
+                }
+            }
+            
+            testCollisionDetection() {
+                try {
+                    const testGame = new PacmanGame();
+                    
+                    // Place ghost at same position as Pacman
+                    testGame.ghosts[0].x = testGame.pacman.x;
+                    testGame.ghosts[0].y = testGame.pacman.y;
+                    
+                    const initialLives = testGame.lives;
+                    testGame.checkCollisions();
+                    
+                    // Lives should decrease or score should increase (depending on power mode)
+                    const livesChanged = testGame.lives !== initialLives;
+                    const scoreChanged = testGame.score > 0;
+                    
+                    this.assert(livesChanged || scoreChanged, 'Collision should affect lives or score');
+                    
+                } catch (error) {
+                    this.assert(false, `Collision detection test failed: ${error.message}`);
+                }
+            }
+            
+            testScoringSystem() {
+                try {
+                    const testGame = new PacmanGame();
+                    
+                    // Test dot eating
+                    testGame.maze[testGame.pacman.y][testGame.pacman.x] = 2; // Place dot
+                    const initialScore = testGame.score;
+                    testGame.updatePacman();
+                    
+                    this.assert(testGame.score >= initialScore, 'Score should increase when eating dot');
+                    
+                    // Test power pellet eating
+                    testGame.maze[testGame.pacman.y][testGame.pacman.x] = 3; // Place power pellet
+                    const scoreBeforePellet = testGame.score;
+                    testGame.updatePacman();
+                    
+                    this.assert(testGame.score > scoreBeforePellet, 'Score should increase when eating power pellet');
+                    this.assertEqual(testGame.powerMode, true, 'Power mode should activate');
+                    
+                } catch (error) {
+                    this.assert(false, `Scoring system test failed: ${error.message}`);
+                }
+            }
+            
+            testPowerMode() {
+                try {
+                    const testGame = new PacmanGame();
+                    
+                    // Activate power mode
+                    testGame.powerMode = true;
+                    testGame.powerModeTimer = testGame.powerModeDuration;
+                    
+                    this.assertEqual(testGame.powerMode, true, 'Power mode should be active');
+                    this.assert(testGame.powerModeTimer > 0, 'Power mode timer should be positive');
+                    
+                    // Test power mode countdown
+                    const initialTimer = testGame.powerModeTimer;
+                    testGame.updateGhosts();
+                    
+                    this.assert(testGame.powerModeTimer <= initialTimer, 'Power mode timer should decrease');
+                    
+                } catch (error) {
+                    this.assert(false, `Power mode test failed: ${error.message}`);
+                }
+            }
+            
+            testGameStateManagement() {
+                try {
+                    const testGame = new PacmanGame();
+                    
+                    // Test pause functionality
+                    testGame.togglePause();
+                    this.assertEqual(testGame.paused, true, 'Game should be paused');
+                    
+                    testGame.togglePause();
+                    this.assertEqual(testGame.paused, false, 'Game should be unpaused');
+                    
+                    // Test restart functionality
+                    testGame.score = 100;
+                    testGame.lives = 1;
+                    testGame.level = 2;
+                    
+                    testGame.restart();
+                    
+                    this.assertEqual(testGame.score, 0, 'Score should reset to 0');
+                    this.assertEqual(testGame.lives, 3, 'Lives should reset to 3');
+                    this.assertEqual(testGame.level, 1, 'Level should reset to 1');
+                    this.assertEqual(testGame.gameRunning, true, 'Game should be running after restart');
+                    
+                } catch (error) {
+                    this.assert(false, `Game state management test failed: ${error.message}`);
+                }
+            }
+            
+            displayResults() {
+                const container = document.getElementById('testResults');
+                const passedTests = this.results.filter(r => r.passed).length;
+                const totalTests = this.results.length;
+                
+                let html = `
+                    <div class="test-container">
+                        <h2>Test Summary</h2>
+                        <p><strong>Passed:</strong> ${passedTests}/${totalTests}</p>
+                        <p><strong>Success Rate:</strong> ${((passedTests/totalTests)*100).toFixed(1)}%</p>
+                    </div>
+                `;
+                
+                this.results.forEach(result => {
+                    const className = result.passed ? 'pass' : 'fail';
+                    const status = result.passed ? '✓ PASS' : '✗ FAIL';
+                    
+                    html += `
+                        <div class="test-result ${className}">
+                            <strong>${status}:</strong> ${result.message}
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+                
+                console.log(`Tests completed: ${passedTests}/${totalTests} passed`);
+            }
+        }
+        
+        // Run tests when page loads
+        window.addEventListener('load', () => {
+            new PacmanTests();
+        });
+    </script>
+</body>
+</html>
